@@ -1,0 +1,390 @@
+\documentclass[12pt]{article}
+\usepackage{amsmath}
+\usepackage[linesnumbered,ruled]{algorithm2e}
+\usepackage[noend]{algpseudocode}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{tikz,forest}
+\usetikzlibrary{arrows.meta}
+\usepackage{forest}
+\usepackage{adjustbox}
+\usepackage{skmath}
+\usepackage{inputenc}
+\usepackage{amsmath,amsthm,amssymb}
+ \usepackage{tabu}
+ \usepackage{graphicx}
+\usepackage{wrapfig}
+\graphicspath{ {images/} }
+\usepackage{tcolorbox}
+\newtheorem*{remark}{Remark}
+
+\makeatletter
+\def\BState{\State\hskip-\ALG@thistlm}
+\makeatother
+
+\forestset{
+    .style={
+        for tree={
+            base=bottom,
+            child anchor=north,
+            align=center,
+            s sep+=1cm,
+    straight edge/.style={
+        edge path={\noexpand\path[\forestoption{edge},thick,-{Latex}] 
+        (!u.parent anchor) -- (.child anchor);}
+    },
+    if n children={0}
+        {tier=word, draw, thick, rectangle}
+        {draw, diamond, thick, aspect=2},
+    if n=1{%
+        edge path={\noexpand\path[\forestoption{edge},thick,-{Latex}] 
+        (!u.parent anchor) -| (.child anchor) node[pos=.2, above] {Y};}
+        }{
+        edge path={\noexpand\path[\forestoption{edge},thick,-{Latex}] 
+        (!u.parent anchor) -| (.child anchor) node[pos=.2, above] {N};}
+        }
+        }
+    }
+}
+
+
+\begin{document}
+\noindent
+{\large{ \textbf{Markov Decision Process} }}\\
+
+\noindent
+\textsl{1. Introduction to MDP}\\
+
+\noindent
+\textsl{1.1 MDP problem}\\
+
+\noindent
+A MDP is a tuple $<S, A, P, R, \gamma >$,  where: 
+\begin{itemize}
+\item S: a finite set of \textbf{states}
+\item A: a finite set of \textbf{actions} 
+\item P: a state \textbf{transition probability matrix}, $P[s' | s, a]$, which can be represented as a 3D matrix
+\item R: a \textbf{reward function}, R(s)
+\item $\gamma$: a \textbf{discount factor}, $\gamma \in [0, 1]$ 
+\end{itemize}
+\begin{tcolorbox}
+Markov assumption: state transition probability only depends on the current state $s$, not the history of earlier states.
+\end{tcolorbox}
+
+\noindent
+\textsl{1.2 Solution to MDP problem}
+\begin{itemize}
+\item The solution to a MDP problem is a \textbf{policy, $\pi(s)$}
+\item $\pi(s)$ is a function from state to action. It outputs an appropriate action for each state the agent is in
+\item \textbf{Optimal policy $\pi^*$}: a policy that generates highest expected utility
+\item $\pi^*$ varies within the same problem with different rewards and risks
+\end{itemize}
+
+\noindent
+\textsl{1.3 Evaluation of policy}
+\begin{itemize}
+\item \textbf{Expected} utility of executing $\pi$ starting from $s$: $U^\pi(s) = E[\sum_{t = 0}^{\infty} \gamma^t R(s_t)]$
+\item Utility of a state $U^{\pi^*}(s)$ is the expected sum of discounted reward of executing an \textbf{optimal policy} from $s$. Often called \textbf{value function}.
+\item Given the value function, we can compute an optimal policy as  \\
+$\pi^*(s) = \operatorname*{arg\,max}_{a}{\sum_{s'}^{} P(s' | s, a) U(s') }$
+\end{itemize}
+
+\noindent
+\textsl{2. Value iteration}\\
+
+\noindent
+\textsl{2.1 Bellman equation}\\
+
+\begin{tcolorbox}
+Bellman equation: the utility of a state is its immediate reward plus expected utility of mext states, given optimal action. \\
+$U(s) = R(s) + \operatorname*{arg\,max}_{a} P(s' | s, a)U(s') $
+\end{tcolorbox}
+
+\noindent
+\textsl{2.2 Value iteration}\\
+
+\noindent
+\textsl{2.2.1 Algorithm}
+
+\begin{algorithm}
+    \SetKwInOut{Input}{Input}
+    \SetKwInOut{Output}{Output}
+
+    \underline{function VALUE-ITERATION(mdp, $\epsilon$) returns a utility function} \;
+    \Input{mdp, an MDP with states S, actions A(s), transition model $P(s' |s, a)$, rewards R(s), discount $\gamma$; $\epsilon$, the maximum error allowed in the utility of any state in an iteration}
+    \Output{$U$}
+    \textbf{Persistent:} 
+    {$U, U'$}, vectors of utilities for states in S, initially zero ; 
+    $\delta$, the maximum change in the utility of any state in an iteration ; 
+   
+  \Repeat { $\delta < \epsilon (1 - \gamma)/ \gamma$} {
+      U $\gets$ U'; $\delta \gets$ 0 \;
+      \ForEach{ state s in S}{%
+     		$U' (s) \gets R(s) + \gamma \operatorname*{arg\,max}_{a \in A(s)} \sum_{s'}{} P(s' | s, a) U_t(s')$
+		
+		\If{$\abs{|U'(s) - U(s)|} > \delta$} {
+		 $\delta \gets \abs{|U'(s) - U(s)|}$
+		}
+         }   
+         }
+      return U
+      \caption{Value Iteration}
+\end{algorithm}
+
+\begin{itemize}
+\item The \textbf{value iteration} algorithm repeatedly does \textbf{Bellman update}:\\
+$U_{t+1} (s) \gets R(s) + \gamma \operatorname*{arg\,max}_{a \in A(s)} \sum_{s'}{} P(s' | s, a) U_t(s')$
+\item Value iteration converges to the unique value function for discounted problems with $\gamma < 1$.
+\end{itemize}
+
+\noindent
+\textsl{2.2.2 Contraction}
+\begin{itemize}
+\item Bellman update $U_{t+1} \gets BU_t$, where $B$ is the Bellman update operator, is a \textbf{contraction}: $\abs{BU - BU'} \leq \gamma \abs{U - U'}$
+\begin{itemize}
+\item This is because $\abs{\operatorname*{arg\,max}_{a}{f(a)} - \operatorname*{arg\,max}_{a}{g(a)} } \leq \operatorname*{arg\,max}_{a}{\abs{f(a) - g(a)}  } $
+\end{itemize}
+
+\item Repeated application of a contraction reaches a unique fixed point U, where $BU = U$ (equilibrium).
+For any initial state $U_0$:
+
+\begin{equation}
+\begin{split}
+\abs{BU_t - BU} & = \abs{BU_t - U}  \\
+ & \leq \gamma \abs{U_t - U} \\
+ & = \gamma \abs{BU_{t-1} - U} \\
+ & \leq ... \\
+ & = ... \\
+ & \leq \gamma^{t} \abs{U_0 - U } \\
+\end{split}
+\end{equation}
+
+\begin{itemize}
+\item Bellman update converges exponentially 
+\item $\abs{U_0 - U} \leq R_{max}/(1 - \gamma)$, if $U_0$ is initialized to 0
+
+\begin{equation}
+\begin{split}
+U_t  & = R_0 + \gamma R_1 + \gamma^2 R_2 + ... \gamma^{t}R_t  \\
+ &\leq R_{max} + \gamma R_{max} + \gamma^2 R_{max} + ... \gamma^{t}R_{max}\\
+ & = \frac{R_{max}}{1-\gamma}
+\end{split}
+\end{equation}
+
+All states are bounded by $\pm \times \frac{R_{max}}{1-\gamma}$
+
+\item If we run $N$ iterations to get error at most $\epsilon$, we have: \\
+  $\gamma^N R_{max}/(1 - \gamma) \leq \epsilon$  $\implies$ $N =\lceil  log(R_{max}/ \epsilon(1-\gamma))/log(1/\gamma)\rceil$
+  
+ \item Terminal condition: $\abs{U_{t+1} - U_t} \leq \epsilon(1-\gamma)/\gamma$ $\implies$ $\abs{U_{t+1} - U} \leq \epsilon$ 
+\end{itemize}
+\end{itemize}
+
+\noindent
+\textsl{3. Policy iteration}
+\begin{itemize}
+\item \textbf{Policy iteration} takes the advantage that utility function does not need to be highly accurate to give correct policy, e.g. if one action is clearly better than others. 
+\item For policy iteration, begin with some initial policy $\pi_0$, alternate the following two steps:
+\begin{itemize}
+\item \textbf{Policy evaluation}: given a policy $\pi_i$, and calculate $U_i = U^{\pi_i}$ 
+\item \textbf{Policy improvement}: calculate a new policy $\pi_{i+1}$ using one step look-ahead based on $U_i$
+\end{itemize}
+\item Policy iteration terminates when there is no change in the policy. The number of policies are finite ($|A|^{|S|}$), hence it must terminates
+\end{itemize}
+
+\begin{algorithm}
+    \SetKwInOut{Input}{Input}
+    \SetKwInOut{Output}{Output}
+
+    \underline{function POLICY-ITERATION(mdp) returns a policy} \;
+    \Input{mdp, an MDP with states S, actions A(s), transition model $P(s' |s, a)$}
+    \Output{$\pi$}
+    \textbf{Persistent:} 
+    {$U$}, a vector of utilities for states in S, initially zero ; 
+    $\pi$, a policy vector indexed by state, initially random; 
+   
+  \Repeat { unchanged?} {
+      U $\gets$ POLICY-EVALUATION($\pi$, U, mdp)\;
+      unchanged? $\gets$ true \;
+      \ForEach{ state s in S}{%
+		\If{$\operatorname*{arg\,max}_{a \in A(s)} \sum_{s'}^{}P(s' | s, a)U(s') > \sum_{s'}^{}P(s' | s, \pi(s))U(s')$} {
+		 $\pi(s) \gets \operatorname*{arg\,max}_{a \in A(s)} \sum_{s'}^{}P(s' | s, a)U(s')$ \;
+		 unchanged $\gets$ false
+		}}   
+         }
+      return $\pi$
+      \caption{Policy iteration}
+\end{algorithm}
+
+\begin{itemize}
+\item Policy evaluation equation is similar to Bellman update without a max operator: $U_i(s) = R(s) + \gamma  \sum_{s'}^{}P(s' | s, \pi_i(s))U_i(s')$
+\begin{itemize}
+\item For n states, it can be solved in $O(n^3)$ time
+\end{itemize}
+\item For large state spaces, often do $k$ iterations instead of converge: \textbf{modified policy iteration}
+\item To speed up, only pick a subset of states to do either policy improvement for updating in policy evaluation: \textbf{asynchronous policy iteration}
+\end{itemize}
+
+\noindent
+\textsl{4. Online search}
+\begin{itemize}
+\item State spaces grows exponentially with number of variables of a state. 
+\item Value/policy iteration iterates through all states, thus runtime grows exponentially with number of variables
+\item To handle large state spaces: 
+\begin{itemize}
+\item \textbf{Function approximation} for the value function, e.g. linear function of features, deep neural networks, etc
+\item \textbf{Online search with sampling}
+\end{itemize}
+\end{itemize}
+
+\noindent
+\textsl{4.1 Monte Carlo Tree search}
+\begin{itemize}
+\item Algorithm:
+
+\begin{itemize}
+\item \textbf{Selection}: The selection function is applied recursively until a leaf node is reached
+\item \textbf{Expansion}: One or more nodes are created (depends on the number of next states)
+\item \textbf{Simulation}: One simulated game is played
+\item \textbf{Backpropagation}: The result of the game is backpropapgated in the tree
+\end{itemize}
+
+\item MCTS repeatedly run trials from the current state (the root for its subtree in online search), where a trial:
+
+\begin{itemize}
+\item Repeatedly select node to go to at next level util
+	\begin{itemize}
+	\item target depth reached 
+	\item selected node has not been discovered: create a new node, run a simulation using a \textbf{default policy} till a required depth
+	\end{itemize}
+
+\item Back up the outcomes all the way to the root
+
+ \item This is an \textbf{anytime policy}: when time is up, use the action that looks the best at the root at that time.
+ 
+ \item A node $n'$ at the next level is selected by applying an action $a$ to $s$, then sampling the next state $s'$ according to $P(s' | s, a)$
+ 
+ \item The action is selected by balancing exploration with exploitation
+ \item The estimated value $\overline V(n)$ at a node $n$ is the \textbf{average return} of all the \textbf{trials} at $n$
+ \begin{itemize}
+ \item The returned $r_t(n)$ of trial $t$ starting from $n$ with state s and next node $n'$ is $R(s) + \gamma r_t(n')$
+ \item $\overline V(s) = \operatorname*{arg\,max}_{a} Q(s,a)$
+ \end{itemize}
+ 
+ \item The estimated Q-function (action-value funciton) at $n$,  $\overline Q(n,a)$ is the \textbf{average return} of all trials at $n$ that starts with action $a$
+  \begin{itemize}
+ \item $\overline Q(r,a)$ at the root $r$ is used to select the action to take at the root.
+ \end{itemize}
+ 
+ \item All values are updated in the back up operation to the root
+\end{itemize}
+
+\end{itemize}
+
+
+\noindent
+\textsl{4.2 Upper Confidence Tree}
+
+\begin{itemize}
+\item UCT function to select action at node $n$:
+
+$\pi_{UCT}(n) =  \operatorname*{arg\,max}_{a}{\overline Q (n, a) + c\sqrt{\frac{ln(N(n))}{N(n, a)}}}$, where $N(n)$ is the number of times the node has been visited, $N(n, a)$ is the number of trials through $n$ with action $a$, and $c$ is a constant.
+
+\item UCT will eventually converge to the optimal policy with enough trials
+\end{itemize}
+
+\noindent
+\textsl{5. POMDP}\\
+
+\noindent
+\textsl{5.1 Define POMDP}
+
+\begin{itemize}
+\item The states are \textbf{partially observable}, and we receive some sensor information, \textbf{observation}, that can be used for state estimation. The observation/sensor mode is defined by $P(e|s)$, the probability of perceiving evidence $e$ in state $s$. 
+\item We do not know the actual state the agent is in, but we can track the probability distribution over the possible states. This is \textbf{belief state}, or belief for short.
+\item \textbf{Filtering}: tracking the probability distribution
+
+\begin{tcolorbox}
+Belief state update: $b'(s') = \alpha P(e|s') \sum_{s}{}P(s' | s, a)b(s)$, $\alpha$: normalizing constant. We write as $b'= FORWARD(b, a, e)$.
+\end{tcolorbox}
+
+
+\item The belief contains all the information necessary for the agent to act optimally: \textbf{the optimal action depends only on the agent's current belief}.
+\item Optimal policy can be described as a mapping $\pi^*(b)$ from belief to aciton
+\item A POMDP agent acts as follows:
+
+\begin{itemize}
+\item Given the current belief $b$, execute the action $a = \pi^*(b)$
+\item Receive the observation $e$
+\item Set belief to FORWARD(b, a, e) and repeat
+\end{itemize}
+
+\item POMDP can be viewed as a MDP in a belief space:
+\begin{itemize}
+\item \textbf{Reward function} in the belief space can be defined as: $\rho(b) = \sum_{s}{} b(s)R(s)$
+\item $P(b' | b, a)$ can be derived from the underlying POMDP
+\item Together $P(b' | b, a)$ and $\rho(b)$ defines an \textbf{observable} MDP in belief space
+\item The optimal policy for this MDP is also the optimal policy for the POMDP
+\end{itemize}
+\end{itemize}
+
+\noindent
+\textsl{5.2 Value iteration for POMDP}
+
+\begin{itemize}
+\item A policy at a belief $b_0$ is a \textbf{conditional plan}. Multiple conditional plans are possible
+\item Consider a fixed conditional plan $p$: 
+\begin{itemize}
+\item Executing $p$ from a state $s$ will have utility $\alpha_p(s)$. Hence, executing it from a belief $b$ will have expected utility $\sum_{s}^{} b(s) \alpha_p(s)$ or $b \cdot \alpha_p$
+\item For a fixed conditional plan $p$, value function $U_p(b) = b \cdot \alpha_p$ is a linear function of $b$
+\item The optimal policy is to choose $p$ with highest utility: $U(b) = \operatorname*{arg\,max}_{p} b \cdot \alpha_p$
+\begin{itemize}
+\item $U(b) = \operatorname*{arg\,max}_{p} b \cdot \alpha_p$ is a hyperplane. The continuous belief space is divided into regions, each corresponding to a conditional plan optimal for that region. $U(b)$ is piecewise linear and convex
+\end{itemize}
+
+\item Let $\rho$ be a depth $d$ conditional plan with initial action $a$ followed by depth $d-1$ subplans $p.e$ for observation $e$:
+
+$\alpha_p(s) = R(s) + \sum_{s'}^{}P(s' | s, a) \sum_{e}^{}P(e | s')\alpha_{p.e}(s'))$. This gives rise to the value iteration algorithm.
+
+\end{itemize}
+\end{itemize}
+
+\begin{algorithm}
+    \SetKwInOut{Input}{Input}
+    \SetKwInOut{Output}{Output}
+
+    \underline{function POMDP-VALUE-ITERATION(pomdp, e) returns a utility function} \\
+    \Input{pomdp, an POMDP with states S, actions A(s), transition model $P(s' |s, a)$, sensor model $P(e|s)$, rewards $R(s)$, discount $\gamma$}
+    \Output{$U$}
+    \textbf{Persistent:} 
+    {$U, U'$}, sets of plans $p$ with associated utility vector $\alpha_p$ \; 
+     
+     $U' \gets$ a set containing just the empty plan[], with $\alpha_{[]} = R(s)$
+   
+  \Repeat { MAX-DIFFERENCE($U, U'$) $<\epsilon(1-\gamma)/\gamma$} {
+      U $\gets U'$\;
+      $U' \gets$ the set of all plans consisting of an action and, for each possible next percept, a plan in U with utility vector computed according to the equation above \;
+      $U' \gets$ REMOVE-DOMINATED-PLANS($U'$) }
+      return $U$
+      \caption{POMDP value iteration}
+\end{algorithm}
+
+\noindent
+\textsl{6. Dynamic decision network (DDN)}
+\begin{itemize}
+\item The execution of a POMDP over time can be represented as a \textbf{dynamic decision network}
+\begin{itemize}
+\item Transition and sensor models represented by a \textbf{dynamic Bayesian network} (DBN)
+\item Add decision and utility modes to get DDN
+\item In DBN, state $S_t$ becomes set of variables $X_t$ and evidence/observation variables are $E_t$
+\item Action at time $t$ is $A_t$, transition is $P(X_{t+1} | X_t, A_t)$, and sensor model is $P(E_t | X_t)$ 
+\end{itemize}
+\item POMDP solvers need to solve two problems:
+\begin{itemize}
+\item Belief tracking or filtering problem: given the history observed so far, what is the current belief
+\item Planning problem: given the current belief, what is the optimal action to take
+\end{itemize}
+
+\end{itemize}
+
+\end{document}
