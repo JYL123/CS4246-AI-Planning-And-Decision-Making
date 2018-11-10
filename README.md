@@ -14,7 +14,7 @@
   * Value iteration
   * Policy iteration
   * Online search
-  * Partial Observable MDP (POMDP)
+  * Partially Observable MDP (POMDP)
 * [Part 4: Reinforcement Learning](https://github.com/JYL123/CS4246-AI-Planning-And-Decision-Making/blob/master/reinforcement-learning/reinforcement-learning/reinforcement-learning.pdf)
   * Introduction to reinforcement learning
   * Passive reinforcement learning
