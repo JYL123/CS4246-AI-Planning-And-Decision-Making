@@ -1,0 +1,219 @@
+\documentclass[12pt]{article}
+\usepackage{amsmath}
+\usepackage[linesnumbered,ruled]{algorithm2e}
+\usepackage[noend]{algpseudocode}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{tikz,forest}
+\usetikzlibrary{arrows.meta}
+\usepackage{forest}
+\usepackage{adjustbox}
+\usepackage{skmath}
+\usepackage{inputenc}
+\usepackage{amsmath,amsthm,amssymb}
+ \usepackage{tabu}
+ \usepackage{graphicx}
+\usepackage{wrapfig}
+\graphicspath{ {images/} }
+\usepackage{tcolorbox}
+\newtheorem*{remark}{Remark}
+
+\makeatletter
+\def\BState{\State\hskip-\ALG@thistlm}
+\makeatother
+
+\forestset{
+    .style={
+        for tree={
+            base=bottom,
+            child anchor=north,
+            align=center,
+            s sep+=1cm,
+    straight edge/.style={
+        edge path={\noexpand\path[\forestoption{edge},thick,-{Latex}] 
+        (!u.parent anchor) -- (.child anchor);}
+    },
+    if n children={0}
+        {tier=word, draw, thick, rectangle}
+        {draw, diamond, thick, aspect=2},
+    if n=1{%
+        edge path={\noexpand\path[\forestoption{edge},thick,-{Latex}] 
+        (!u.parent anchor) -| (.child anchor) node[pos=.2, above] {Y};}
+        }{
+        edge path={\noexpand\path[\forestoption{edge},thick,-{Latex}] 
+        (!u.parent anchor) -| (.child anchor) node[pos=.2, above] {N};}
+        }
+        }
+    }
+}
+
+
+\begin{document}
+
+\noindent
+{\large{ \textbf{Deterministic Planning} }}\\
+
+\noindent
+\textsl{1. Classical planning}
+\begin{itemize}
+\item To scale up planning, a factored representation is usually used. 
+\item Planning domain definition language (PDDL):
+\begin{itemize}
+\item \textbf{State}: a conjunction of fluents
+\begin{itemize}
+\item Fluents are state variables, representing variable that can change over time
+\item Fluents are ground boolean variable
+\item Example: At(Truck, Melbourne)
+\item Data semantics are used:
+\begin{itemize}
+\item Closed world assumption: fluents not mentioned are false
+\item Unique name assumption: $Truck_1$ and $Truck_2$ are distinct
+\end{itemize}
+\item The following are not allowed:
+\begin{itemize}
+\item $At(x, y) \gets$ because it is not grounded
+\item $\neg Poor \gets$ because it is a negation
+\item $At(Father(Fred), Sydney) \gets$ because PDDL does not allow functions   
+\end{itemize}
+\item Think of states as a set of fluents, manipulated using set operations
+\end{itemize}
+
+\item \textbf{Action}: PDDL specifies the result of an action in terms of what changes. What is left remains unchanged.
+\begin{itemize}
+\item A set of action is specified by an \textbf{action schema}. A schema consists of an \textbf{action name}, a lists of all \textbf{ variables} used, a \textbf{precondition} and an \textbf{effect} 
+\item The precondition and effects are conjunctions of literals 
+\item The result of executing action $a$ in state $s$ is a state $s'$ which is a set of fluents formed as follows:
+\begin{itemize}
+\item Start from $s$
+\item Remove fluents that appear in the action's effect as negative literals: \textbf{delete list}
+\item Add fluents that appear in the action's effect as positive literals: \textbf{add list} \\
+
+$RESULT(s, a) = (s - DEL(a)) \cap ADD(a)$
+\end{itemize}
+\end{itemize}
+\item A set of action schemas defines a planning \textbf{domain}
+\item A specific problem is defined by adding an initial state and a goal
+\item The \textbf{initial state} is a conjunction of ground atoms
+\item The \textbf{goal state} is a conjunction of literals 
+\item PDDL does not allow quantifiers
+\end{itemize}
+
+\item Planning as state-space search 
+\begin{itemize}
+\item \textbf{Forward search}:
+\begin{itemize}
+\item Difficulties for forward search includes: 
+\begin{itemize}
+\item State space can be very large - exponential with the number of state variables
+\item Action space can be very large
+\end{itemize}
+\item Forward search is hopeless without good heuristics
+\end{itemize}
+
+\item \textbf{Backward relevant-state search}:
+\begin{itemize}
+\item Only consider actions that are relevant to the goal, or current state
+\item There is a set of relevant states to consider at each step
+\item In backward search, we regress from a state description to a predecessor state description 
+\begin{itemize}
+\item Distinguish between state and description: in a state, every variable is assigned a value(True/False). For a ground fluents, there are $2^n$ ground states. For n ground fluents, there are $3^n$ descriptions, each fluent can be positive, negative or not mentioned.
+\item Example: $\neg Poor \land  Famous$ describes states where $Poor$ is false and $Famous$ is true, but other unmentioned fluents can have any values
+\end{itemize}
+\item Given a goal $g$ and action $a$, regression from $g$ over $a$ gives description $g'$:\\
+
+$g' = (g - Add(a) \cap Precond(a))$
+\end{itemize}
+\end{itemize}
+\item Heuristics for planning 
+\begin{itemize}
+\item \textbf{Ignore ore-conditions heuristic}: drops all pre-conditions
+\begin{itemize}
+\item Solves relaxed problem $\gets$ Admissible
+\item Any single goal fluent achievable in one step
+\item Number of steps is roughly number of unsatisfied  goals, except some actions can satisfy multiple goals, some may undo some goals.
+\end{itemize}
+\item \textbf{Ignore delete lists heuristic}
+\begin{itemize}
+\item Ignoring delete lists allows monotonic progress towards goal
+\end{itemize}
+\item \textbf{Problem decomposition}
+\begin{itemize}
+\item Divide goal into subgoals, solve subgoals, then combine them
+\item If each subproblem uses an admissible heuristic, taking max is admissible
+\item Assume subgoal independent: sum the cost of solving each subgoal 
+\begin{itemize}
+\item Solution optimistic when there is negative interaction: action in a one subplan deletes goal in another subplan (thus true cost $>$ sum of cost of subplans) $\gets$ admissible
+\item Solution pessimistic when there is positive interaction: action in one subplan achieves goals in another subplan $\gets$ not admissible
+\item If admissible, sum is better than max 
+\item Admissible if an optimal solution is reuired
+\end{itemize}
+
+\end{itemize}
+\end{itemize}
+\end{itemize}
+
+\noindent
+\textsl{2. SATPLAN}
+\begin{itemize}
+\item One way to do planning is to transform the planning problem into a \textbf{Boolean satisfiability (SAT)} problem, and solve with a SAT solver
+\item Solving SAT requires finding an assignment to variables that will make a Boolean formula true, or declare that no assignment exists
+\item SAT solvers usually takes input in \textbf{conjunctive normal form (CNF)} formulas:
+\begin{itemize}
+\item A CNF formula is a conjunction of clauses
+\item A clause is a disjunction of literals 
+\item A literals is a variable or its negation
+\item Any boolean formula can be converted to CNF
+\end{itemize}
+\item Translat PDDL into SAT
+\begin{itemize}
+\item Propositionalize the actions: replace each action schema with set of ground actions by substituting constraints for each variable
+\item Define initial state: asset $F^0$ for every fluent $F$ in initial state and $\neg F^0$ for every fluent not in the initial state
+\item Propositionalize the goal: each goal is a conjunction constructs a disjunction over all possible ground conjunctions obtained by replacing the variable with constraints
+\item Add successor-state axioms: for each fluent F, add axiom of the form:\\
+
+$F^{t+1} \Leftrightarrow ActionCauseF^t \lor (F^t \land \neg ActionCauseNotF^t)$
+
+\item Add preconditoin axioms: for each ground action A, add axiom $A^t \Rightarrow PRE(A)^t$ (if a action is taken at time t, its preconds must have been true)
+\item Add action exclusion axioms: say that every action is distinct from every other actions, i.e. only one action is allowed at each time step. 
+\begin{itemize}
+\item To do this, for every pair of actions $A_i^t$ and $A_j^t$: add mutual exclusion constraint $\neg A_i^t \lor A_j^t$
+\item If we want to allow parallel actions, add mutual exclusion only if pair of action really interfere with each other
+\end{itemize}
+\end{itemize}
+\end{itemize}
+\pagebreak
+\begin{itemize}
+\begin{algorithm}
+    \SetKwInOut{Input}{Input}
+    \SetKwInOut{Output}{Output}
+
+    \underline{function SATPLAN(init, transition, goal, $T_{max}$) returns action or failure} \\
+    \Input{init, transition, goal consisitute a description of the problem;  $T_{max}$, an upper limit for plan length}
+    \Output{$solution / failure$}\
+    
+      \For{$t = 0;\ i < T_{max};\ t = i + 1$}{
+    cnf $\gets$ TRANSLATE-TO-SAT(init, transition, goal, t)\;
+    model $\gets$ SAT-SOLVER(cnf)
+    \If{$model$ is not null}
+      {
+        return EXTRACT-SOLUTION(model)
+      }
+  }
+      return failure
+      \caption{SAT plan}
+\end{algorithm}
+
+\item The number of steps required is not known in advance: try every value for $T$ up to $T_{max}$
+\item Instead of Boolean SAT, can also encode problem as constraint satisfaction problem (CSP). Similar, but variable need not be binary
+\item PlanSAT and Bounded PlanSAT asks whether there is a solution of length k or less. Both problems are decidable for classical planning as the number of states is finite (there is no function allowed)
+\begin{itemize}
+\item If function symbols are added, number of states becomes infinite and PlanSAT becomes semidecidable (if there exist a solution, return the solution but may not terminate when no solution exists)
+\end{itemize}
+\end{itemize}
+
+
+
+
+
+
+\end{document}
