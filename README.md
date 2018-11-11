@@ -2,7 +2,7 @@
 
 
 * [Part 1: Deterministic Planning](https://github.com/JYL123/CS4246-AI-Planning-And-Decision-Making/blob/master/deterministic-planning/DP-summary/deterministic-planning.pdf)
-  * Classical planning with PPDL
+  * Classical planning with PDDL
   * SATPLAN
 * [Part 2: Decision Making Under Uncertainty](https://github.com/JYL123/CS4246-AI-Planning-And-Decision-Making/blob/master/decision-making-under-uncertainty/decision-making-under-uncertainty/decision-making-under-uncertainty-%26-mdp.pdf)
   * Decision theory
